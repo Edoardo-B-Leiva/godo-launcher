@@ -132,7 +132,7 @@ impl DeviceCredentials {
             _ => { error!("Failed to get device_id!"); },
         }
     }
-    pub fn get_device_auth_from(&mut self, access_token: &str, account_id: &str) {
+    pub fn get_device_auth_from(&mut self, http_client: &Client, access_token: &str, account_id: &str) {
         
         if access_token.is_empty() || account_id.is_empty() {
             error!("Device access token cannot be empty!");
@@ -140,7 +140,7 @@ impl DeviceCredentials {
         }
         
         let mut url : String = String::from("https://account-public-service-prod.ol.epicgames.com/account/api/public/account/");
-        url.push_str(account_id.as_str());
+        url.push_str(account_id);
         url.push_str("/deviceAuth");
 
         /*
@@ -166,10 +166,10 @@ impl DeviceCredentials {
         }
 
         let mut bearer_header = String::from("Bearer ");
-        bearer_header.push_str(access_token.as_str());
+        bearer_header.push_str(access_token);
 
         let response = Client::post(&http_client, url)
-            .header("Authorization", bearer_header.as_str())
+            .header("Authorization", bearer_header)
             .send();
 
         match response {
