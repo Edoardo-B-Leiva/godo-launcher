@@ -5,9 +5,7 @@ use log::*;
 use colog;
 use std::env::args;
 use std::io::Write;
-
 use std::process::Command;
-use std::process::Stdio;
 
 use crate::auth::*;
 
@@ -54,13 +52,13 @@ fn main() {
         .https_only(true)
         .user_agent(concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),));
 
-    let http_client = http_client_builder.build().unwrap_or(reqwest::blocking::Client::new());
+    let http_client = http_client_builder.build()
+        .unwrap_or(reqwest::blocking::Client::new());
 
     // Authentication code from user input
     print!("Insert AuthCode > ");
     std::io::stdout().flush().unwrap();
-
-
+    
     // Getting temporal info to create persistent login info
     let mut auth_code: String = "".to_string();
     let _ = std::io::stdin().read_line(&mut auth_code).unwrap();
@@ -86,31 +84,6 @@ fn main() {
 
     let mut uid_argument = String::from("-epicuserid=");
     uid_argument.push_str(persistent_credentials.account_id.as_str());
-
-    /*let game_path = "D:\\Games\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64\\FortniteLauncher.exe";
-    let game_arguments = vec![
-    "/d",
-    "D:\\Games\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64\\FortniteLauncher.exe", "FortniteLauncher.exe",
-    "-obfuscationid=iDkaKzl08diwOpawKkaeEkwihUB0Og",
-    "-AUTH_LOGIN=unused",
-    &auth_password_argument,
-    "-AUTH_TYPE=exchangecode",
-    "-epicapp=Fortnite",
-    "-epicenv=Prod",
-    "-EpicPortal",
-    "-steamimportavailable",
-    &uid_argument,
-    "-epiclocale=en", 
-    "-epicsandboxid=fn",
-    ];*/
-       /* 
-    Command::new(game_path)
-        .args(game_arguments)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
-        */
 
     let command = Command::new("cmd")
         .arg("/C")  // '/C' executes the command and terminates the command shell
