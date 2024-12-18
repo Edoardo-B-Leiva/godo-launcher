@@ -1,3 +1,4 @@
+use std::thread::AccessError;
 use reqwest::blocking::*;
 use log::*;
 use serde::Deserialize;
@@ -136,65 +137,6 @@ impl DeviceCredentials {
             _ => { error!("Failed to get device_id!"); },
         }
     }
-    pub fn get_device_auth_and_secret_from(&mut self, http_client: &Client, access_token: &str, account_id: &str) {
-
-        if access_token.is_empty() || account_id.is_empty() {
-            error!("Device access token cannot be empty!");
-            return;
-        }
-
-        let mut url : String = String::from("https://account-public-service-prod.ol.epicgames.com/account/api/public/account/");
-        url.push_str(account_id);
-        url.push_str("/deviceAuth");
-
-        /*
-        let it : String = String::new;
-        it.starts_with("one thing");
-        // Just discovered String.starts_with() KEKW
-        */
-
-        #[derive(Debug, Deserialize)]
-        struct CreatedObject {
-            location: String,
-            ipAddress: String,
-            dateTime: String,
-        }
-
-        #[derive(Debug, Deserialize)]
-        struct ResponseStruct {
-            deviceId: String,
-            accountId: String,
-            secret: String,
-            userAgent: String,
-            created: CreatedObject,
-        }
-
-        let mut bearer_header = String::from("Bearer ");
-        bearer_header.push_str(access_token);
-
-        let response = Client::post(&http_client, url)
-            .header("Authorization", bearer_header)
-            .send();
-
-        match response {
-            Ok(response_data) => {
-                match response_data.json::<ResponseStruct>().ok() {
-                    Some(response_json) => {
-                        self.device_id = response_json.deviceId;
-                        self.secret = response_json.secret;
-                    }
-                    None => {
-                        error!("Failed to parse device_id!");
-                    },
-                }
-            },
-            _ => { error!("Failed to get device_id!"); },
-        }
-    }
-
-    pub fn get_exchange_code() -> String {
-        todo!();
-    }
 }
 
 #[derive(Debug)]
@@ -210,8 +152,7 @@ impl TemporaryCredentials {
             exchange_code : String::new(),
         }
     }
-
-    pub fn get_access_token(&mut self, http_client: &Client, device_credentials: &DeviceCredentials) {
+    pub fn get_access_token_from_device_auth(&mut self, http_client: &Client, device_credentials: &DeviceCredentials) /*Android*/ {
 
         #[derive(Debug, Deserialize)]
         struct ResponseStruct {
@@ -262,7 +203,7 @@ impl TemporaryCredentials {
             request_body = request_body.trim().to_string();
         }
 
-        let url :   &str = "https://account-public-service-prod.ol.epicgames.com/account/api/oauth/token";
+        let url : &str = "https://account-public-service-prod.ol.epicgames.com/account/api/oauth/token";
         
         let response = Client::post(&http_client, url)
             .body(request_body)
@@ -285,7 +226,57 @@ impl TemporaryCredentials {
             _ => { error!("Failed to get access token!"); },
         }
     }
-    pub fn get_exchange_code(&mut self, http_client: &Client) {
+    pub fn get_access_token_from_exchange_code(&mut self, http_client: &Client, temporary_credentials: &TemporaryCredentials) /*Generic*/ {
+        #[derive(Debug, Deserialize)]
+        struct ResponseStruct {
+            access_token: String,
+            /*expires_in: u16,
+            expires_at: String,
+            token_type: String,
+            refresh_token: String,
+            refresh_expires: u16,
+            refresh_expires_at: String,
+            account_id: String,
+            client_id: String,
+            internal_client: bool,
+            client_service: String,
+            displayName: String,
+            app: String,
+            in_app_id: String,
+            acr: String,
+            auth_time: String*/
+        }
+
+        let mut request_body = String::new();
+        request_body.push_str("grant_type=exchange_code&exchange_code=".trim());
+        request_body.push_str(temporary_credentials.exchange_code.as_str().trim());
+        
+        let url : &str = "https://account-public-service-prod.ol.epicgames.com/account/api/oauth/token";
+
+        let response = http_client.post(url)
+            .body(request_body)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Authorization",
+                    "Basic MzRhMDJjZjhmNDQxNGUyOWIxNTkyMTg3NmRhMzZmOWE6ZGFhZmJjY2M3Mzc3NDUwMzlkZmZlNTNkOTRmYzc2Y2Y=")
+            .send();
+
+        match response {
+            Ok(response_data) => {
+                match response_data.json::<ResponseStruct>().ok() {
+                    Some(response) => {
+                        self.access_token = response.access_token;
+                    },
+                    None => {
+                        error!("Failed to parse access_token!");
+                    }
+                }
+            },
+            _ => { error!("Failed to get access token!"); },
+        }
+        
+        
+    }
+    pub fn get_exchange_code(&mut self, http_client: &Client, client_id: &str) {
 
         #[derive(Debug,Deserialize)]
         struct ResponseStruct {
@@ -296,16 +287,19 @@ impl TemporaryCredentials {
 
         let mut bearer_header = String::from("Bearer ");
         bearer_header.push_str(self.access_token.as_str());
-
+        
+        let mut query_content : String = String::from("?consumingClientId=").trim().to_string();
+        query_content.push_str(client_id.trim());
+        
         let url: &str = "https://account-public-service-prod.ol.epicgames.com/account/api/oauth/exchange";
         let response = Client::get(&http_client, url)
+            //.query(query_content.as_str())
+            .query(&[("consumingClientId",client_id.trim())])
             .header("Authorization", bearer_header.as_str())
             .send();
         
-        
-        
         match response {
-            Ok(response_data) => {
+            Ok(response_data) => {            
                 match response_data.json::<ResponseStruct>().ok() {
                     Some(response_json) => {
                         self.exchange_code = response_json.code;
@@ -317,9 +311,5 @@ impl TemporaryCredentials {
             },
             _ => { error!("Failed to get Exchange code!"); },
         }
-        
-
     }
-    pub fn get_exchange_code_from(&mut self, http_client: &Client, access_token: &str) {todo!();}
-
 }
