@@ -21,6 +21,7 @@ A simple **unoffical** open-source Fortnite launcher for Windows made in Rust wi
 
 ### Special thanks:
 - [LeleDerGrasshalmi/FortniteEndpointsDocumentation](https://github.com/LeleDerGrasshalmi/FortniteEndpointsDocumentation)
+- [MixV2/EpicResearch](https://github.com/MixV2/EpicResearch)
 
 ## Getting the launcher
 > [!IMPORTANT]
