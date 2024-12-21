@@ -13,7 +13,7 @@ A simple **unoffical** open-source Fortnite launcher for Windows made in Rust wi
 > 
 > Epic Games and the Fortnite development team do not support the use of third-party software.
 >
-> We **do not** make responsible for any liability issue *(such as: In-game ban, account ban)*
+> We **do not take responsibility** for any liability issue *(such as: In-game ban, account ban)*
 
 ## Contributors
 - ***(Code Owner)*** [@Edoardo-B-Leiva](https://github.com/Edoardo-B-Leiva/) 
