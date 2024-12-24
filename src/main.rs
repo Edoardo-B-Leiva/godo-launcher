@@ -1,11 +1,10 @@
 mod auth;
 
-use std::process::exit;
-use log::*;
 use colog;
+use log::*;
 use std::env::args;
 use std::io::Write;
-use std::process::Command;
+use std::process::{exit, Command};
 
 use crate::auth::*;
 
@@ -13,7 +12,7 @@ fn main() {
     /* Initial initializations */
     {
         colog::init();
-        // TODO: Set log level to display nothing
+        // TODO: Set log level to display nothing by default
     }
 
     /* Command line arg fetching and handling */
@@ -22,8 +21,7 @@ fn main() {
         /* Help page */
         if command_line_arguments.iter().any(|a| a == "--help") {
             // TODO: Complete help message
-            let help_page : &str =
-"
+            let help_page: &str = "
 === godo-launcher help page===\n
 `--verbose`, `-v`, `-vv`\t| Enables debug logging.
 `--debug`, `-d`\t\t\t| Enables verbose logging.
@@ -31,11 +29,14 @@ fn main() {
 ";
 
             println!("{help_page}");
-            std::process::exit(0);
+            exit(0);
         }
 
         /* LogLevel modifiers */
-        if command_line_arguments.iter().any(|a| a == "--verbose" || a == "-v" || a == "-vv") {
+        if command_line_arguments
+            .iter()
+            .any(|a| a == "--verbose" || a == "-v" || a == "-vv")
+        {
             // TODO: Change Log Level to info and warn
         }
 
@@ -43,56 +44,87 @@ fn main() {
             warn!("Debug info enabled!");
             // TODO: Change Log Level to debug
         }
-
     }
 
     /* Authentication Process */
 
+    //1. get access token 1 from authcode
+    //2. get persistent credentials from access token 1
+    //3. get access token 2 from persistent credentials
+    //4. get android exchange code from access token and persistent credentials
+
     let http_client_builder = reqwest::blocking::ClientBuilder::new()
         .https_only(true)
-        .user_agent(concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),));
+        .user_agent(concat!(
+            env!("CARGO_PKG_NAME"),
+            "/",
+            env!("CARGO_PKG_VERSION"),
+        ));
 
-    let http_client = http_client_builder.build()
+    let http_client = http_client_builder
+        .build()
         .unwrap_or(reqwest::blocking::Client::new());
 
     // Authentication code from user input
-    print!("Insert AuthCode > ");
+    info!("Insert Authentication Code: ");
     std::io::stdout().flush().unwrap();
-    
+
     // Getting temporal info to create persistent login info
     let mut auth_code: String = "".to_string();
     let _ = std::io::stdin().read_line(&mut auth_code).unwrap();
-    
-    let mut persistent_credentials: DeviceCredentials = DeviceCredentials::new();
-    persistent_credentials.get_access_token_and_account_id(&http_client, &auth_code);
-    persistent_credentials.get_device_auth_and_secret(&http_client);
-    dbg!(&persistent_credentials);
 
-    /* Android temporary credentials */
-    let mut android_credentials: TemporaryCredentials = TemporaryCredentials::new();
-    android_credentials.get_access_token_from_device_auth(&http_client, &persistent_credentials);
-    android_credentials.get_exchange_code(&http_client, "34a02cf8f4414e29b15921876da36f9a");
-    dbg!(&android_credentials);
+    info!("Generating persistent credentials");
+    let persistent_credentials = PersistentCredentials::fetch(&http_client, &auth_code).unwrap();
+    info!("New persistent credentials: {:#?}", &persistent_credentials);
 
-    /* Generic temporary credentials */
-    let mut generic_credentials : TemporaryCredentials = TemporaryCredentials::new();
-    generic_credentials.get_access_token_from_exchange_code(&http_client, &android_credentials);
-    generic_credentials.get_exchange_code(&http_client, "ec684b8c687f479fadea3cb2ad83f5c6");
-    dbg!(&generic_credentials);
+    // Generating Android access token and exchange code from persistent_credentials
+
+    info!("Generating Android exchange code from persistent credentials");
+    let android_token = AccessToken::from_persistent_credentials(
+        &http_client,
+        &persistent_credentials,
+        ClientType::ANDROID,
+    )
+    .unwrap();
+    info!("Android Access Token: {:#?}", &android_token);
+
+    let android_exchange_code = ExchangeCode::from_persistent_credentials(
+        &http_client,
+        &android_token,
+        ClientType::ANDROID,
+    )
+    .unwrap();
+    info!("Android Exchange Code: {:#?}", &android_exchange_code);
+
+    // Generating generic access_token and exchange code from android exchange code
+
+    info!("Generating generic access token");
+    let generic_access_token =
+        AccessToken::from_exchange_code(&http_client, &android_exchange_code).unwrap();
+    info!("Generic Access Token: {:#?}", &generic_access_token);
+
+    info!("Generating generic exchange code");
+    let generic_exchange_code = ExchangeCode::from_persistent_credentials(
+        &http_client,
+        &generic_access_token,
+        ClientType::GENERIC,
+    )
+    .unwrap();
+    info!("Generated exchange code: {:#?}", &generic_exchange_code);
 
     /* Game Launching*/
-
+    info!("Starting game...");
     let mut auth_password_argument = String::from("-AUTH_PASSWORD=");
-    auth_password_argument.push_str(generic_credentials.exchange_code.as_str());
+    auth_password_argument.push_str(generic_exchange_code.0.as_str());
 
     let mut uid_argument = String::from("-epicuserid=");
     uid_argument.push_str(persistent_credentials.account_id.as_str());
 
     let command = Command::new("cmd")
-        .arg("/C")  // '/C' executes the command and terminates the command shell
+        .arg("/C") // '/C' executes the command and terminates the command shell
         .arg("start")
         .arg("/d")
-        .arg("D:\\Games\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64")  // Path to the directory
+        .arg("D:\\Games\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64") // Path to the directory
         .arg("FortniteLauncher.exe") // The executable
         .arg("-AUTH_LOGIN=unused")
         .arg(&auth_password_argument)
@@ -104,32 +136,15 @@ fn main() {
         .arg(&uid_argument)
         .arg("-epicsandboxid=fn")
         .spawn();
-    
-    /*
-    "D:\Games\Epic Games\Fortnite\FortniteGame\Binaries\Win64/FortniteClient-Win64-Shipping_EAC_EOS.exe"
-    -obfuscationid=N8Kw52kUZsQq50886Eit-gzJOBar1g
-    -AUTH_LOGIN=unused -AUTH_PASSWORD=91ec3f72c2d94c8598082d58fc007a02
-    -AUTH_TYPE=exchangecode
-    -epicapp=Fortnite
-    -epicenv=Prod
-    -EpicPortal
-    -epicusername=Generic_Boi69
-    -epicuserid=bff1ee7d635140ed945f69a0595526b2
-    -epiclocale=en
-    -epicsandboxid=fn
-    -named_pipe=bff1ee7d635140ed945f69a0595526b2\Fortnite
-    -fromfl=eaceos
-    -caldera=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50X2lkIjoiYmZmMWVlN2Q2MzUxNDBlZDk0NWY2OWEwNTk1NTI2YjIiLCJnZW5lcmF0ZWQiOjE3MzQ1NDMwNDYsImNhbGRlcmFHdWlkIjoiOTUyZmU2OTktZjJjMy00YjZlLTk2NzctOWRlMDMyOTcyZjkxIiwiYWNQcm92aWRlciI6IkVhc3lBbnRpQ2hlYXRFT1MiLCJub3RlcyI6IiIsInByZSI6dHJ1ZSwicGFlIjpmYWxzZSwiZmFsbGJhY2siOmZhbHNlfQ.SaiRyK-FFbzCI3TVM8RRFS0UyCu5VUsTlIMeNKPZHYcKUORdE7fZJlo0DC4zoZsPfmLNEzZxCLb_sJVPiy-m7A
-    */
-    
+
     match command {
         Ok(mut child) => {
             // Optionally, you can wait for the process to complete
             let status = child.wait().expect("Failed to wait on child");
-            println!("Command executed with status: {}", status);
+            info!("Command executed with status: {}", status);
         }
         Err(e) => {
-            eprintln!("Error executing command: {}", e);
+            error!("Error executing command: {}", e);
             exit(1);
         }
     }
