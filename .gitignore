@@ -24,3 +24,7 @@ Cargo.lock
 # Added by cargo
 
 /target
+
+# End of cargo
+
+profiles.json
