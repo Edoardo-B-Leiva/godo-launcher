@@ -28,3 +28,4 @@ Cargo.lock
 # End of cargo
 
 profiles.json
+.idea/
