@@ -4,9 +4,9 @@
 
 A simple **unoffical** open-source Fortnite launcher for Windows made in Rust with multi-account support.
 
-![GitHub License](https://img.shields.io/github/license/Edoardo-b-leiva/godo-launcher?style=for-the-badge)
-![GitHub Repo stars](https://img.shields.io/github/stars/Edoardo-B-Leiva/godo-launcher?style=for-the-badge&label=GitHub%20stars)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Edoardo-B-Leiva/godo-launcher/total?style=for-the-badge&label=Downloads)
+![GitHub License](https://img.shields.io/github/license/a-mayb3/godo-launcher?style=for-the-badge)
+![GitHub Repo stars](https://img.shields.io/github/stars/a-mayb3/godo-launcher?style=for-the-badge&label=GitHub%20stars)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/a-mayb3/godo-launcher/total?style=for-the-badge&label=Downloads)
 
 > [!Caution]
 > Use at your own risk!
@@ -16,7 +16,7 @@ A simple **unoffical** open-source Fortnite launcher for Windows made in Rust wi
 > We **do not take responsibility** for any liability issue *(such as: In-game ban, account ban)*
 
 ## Contributors
-- ***(Code Owner)*** [@Edoardo-B-Leiva](https://github.com/Edoardo-B-Leiva/) 
+- ***(Code Owner)*** [@a-mayb3](https://github.com/a-mayb3/) 
 - [@G4-Synix](https://github.com/G4-Synix)
 
 ### Special thanks:
@@ -40,7 +40,7 @@ A simple **unoffical** open-source Fortnite launcher for Windows made in Rust wi
 
 #### Procedure
 ```powershell
-git clone https://github.com/Edoardo-B-Leiva/godo-launcher --depth 1 &&
+git clone https://github.com/a-mayb3/godo-launcher --depth 1 &&
 cd godo-launcher &&
 cargo build --release
 ```
