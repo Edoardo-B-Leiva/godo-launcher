@@ -39,8 +39,13 @@ A simple **unoffical** open-source Fortnite launcher for Windows made in Rust wi
 - [colog](https://github.com/chrivers/rust-colog)
 
 #### Procedure
+```bash
+git clone --depth 1 https://github.com/a-mayb3/godo-launcher
+cd godo-launcher
+cargo install --path . --locked
+```
 ```powershell
-git clone https://github.com/a-mayb3/godo-launcher --depth 1 &&
-cd godo-launcher &&
-cargo build --release
+git clone --depth 1 https://github.com/a-mayb3/godo-launcher
+set-location godo-launcher
+cargo install --path . --locked
 ```
